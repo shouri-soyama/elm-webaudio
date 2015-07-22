@@ -1,7 +1,7 @@
 {
     "version": "1.0.0",
     "summary": "elm-webaudio",
-    "repository": "https://github.com/shouri-soyama/elm-test.git",
+    "repository": "https://github.com/shouri-soyama/elm-webaudio.git",
     "license": "",
     "source-directories": [
         "src"
