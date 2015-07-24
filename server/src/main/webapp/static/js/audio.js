@@ -1,6 +1,6 @@
 (function() { "use strict";
-	var app = Elm.embed(Elm.Audio, document.getElementById("main"), {
-		soundEncoded: []
+	var app = Elm.embed(Elm.Audio.Main, document.getElementById("main"), {
+		toElm: null
 	});
 	var audioConf = {
 		bufferSize: 16384,
@@ -12,7 +12,6 @@
 	var ac = new AudioContext();
 	var recordProcessor = ac.createScriptProcessor(audioConf.bufferSize, 1, 1);
 	recordProcessor.onaudioprocess = function(e) {
-		console.log("onaudioprocess");
 		var data = e.inputBuffer.getChannelData(0);
 		var conf = {
 			channels: 1,
@@ -43,7 +42,7 @@
 		var resampleBuf = resampler.process_interleaved(data);
 		var packets = encoder.encode_float(resampleBuf);
 		var ret = packets.map(function(x) { return toArray(new Uint8Array(x)); });
-		app.ports.soundEncoded.send(ret);
+		app.ports.toElm.send(ret);
 		console.log(ret);
 		resampler.destroy();
 	};
@@ -52,10 +51,6 @@
 		micSource.connect(recordProcessor);
 	}, function(err) {
 		console.log(err);
-	});
-	app.ports.startRec.subscribe(function() {
-		console.log("startRec");
-		recordProcessor.connect(ac.destination);
 	});
 	var decoder = new OpusDecoder(audioConf.sampleRate, audioConf.channels);
 	var resampler = new SpeexResampler(audioConf.channels, audioConf.sampleRate, ac.sampleRate, 32, true);
@@ -75,10 +70,20 @@
 		});
 	};
 
-	app.ports.playAudio.subscribe(function(buf) {
-		console.log("playAudio");
-		console.log(buf);
-		recordProcessor.disconnect();
-		playAudio(buf);
+	app.ports.fromElm.subscribe(function(data) {
+		if (data == null) {
+			return;
+		}
+		switch(data.type) {
+		case "startRec" :
+			recordProcessor.connect(ac.destination);
+			break;
+   		case "play":
+			recordProcessor.disconnect();
+			playAudio(data.buf);
+			break;
+   		default:
+			break;
+    	}    
 	});
 })();
